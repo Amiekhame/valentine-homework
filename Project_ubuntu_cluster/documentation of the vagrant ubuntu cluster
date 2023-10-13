@@ -1,0 +1,148 @@
+The script begins with a shebang line (#!/bin/bash) that specifies it should be executed using the Bash shell.
+
+The primary purpose of this script is to check if the 'vagrant' command is available in the system's PATH.
+
+The if statement is used to conditionally execute code based on whether the 'vagrant' command is found in the system's PATH. It checks for the existence of 'vagrant' using the command command with -v (verbose) and redirects both standard output and standard error to /dev/null.
+
+If the 'vagrant' command is found, the script prints "Vagrant is installed" to the terminal, indicating that Vagrant is indeed installed on the system.
+
+In the event that the 'vagrant' command is not found, the else block is executed, and the script prints "Vagrant is not installed. Please install Vagrant first" to the terminal. This message advises the user to install Vagrant before proceeding with any Vagrant-related tasks.
+
+The cat command is used to create a new file called "Vagrantfile."
+
+The << EOL notation is a here document that allows you to input multiple lines of text. In this case, everything between << EOL and the closing "EOL" will be written to the "Vagrantfile."
+
+The lines starting with # -*- mode: ruby -*- and # vi: set ft=ruby : are comments within the Vagrantfile that provide configuration hints for text editors (like Vim).
+
+Inside the Vagrantfile, there's a configuration block that specifies settings for virtual machines. It's wrapped within Vagrant.configure("2") do |config|.
+
+Within this configuration block, the first machine is defined as "Master" using config.vm.define "Master" do |master_config|. This code block specifies settings for the "Master" virtual machine.
+
+For the MASTER NODE:
+
+It sets the base box to "ubuntu/bionic64" using master_config.vm.box = "ubuntu/bionic64".
+It configures a private network with the IP address "192.168.33.10" using config.vm.network "private_network", ip: "192.168.33.10".
+It provides configuration for the VirtualBox provider, allocating 1024 MB of memory and 1 CPU core.
+Below these settings, there is a provisioning script defined with master_config.vm.provision "shell", inline: <<-SHELL. This script installs a LAMP stack (Linux, Apache, MySQL, PHP), sets up a user named "altschool," generates an SSH key, creates directories and files, and displays information about running processes.
+
+master_config.vm.provision "shell", inline: <<-SHELL: This line specifies that the provisioning method for this virtual machine is a shell script. It uses a heredoc (<<-SHELL) to define a multiline shell script.
+
+The script starts with a comment to describe its purpose: "Provisioning for the 'Master' Node (LAMP stack, user setup, file copy, and process display)."
+
+sudo apt-get update: This command updates the package list of the Ubuntu system to ensure that the latest package information is available.
+
+sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install apache2 php libapache2-mod-php mysql-server php-mysql: This command installs a LAMP stack on the virtual machine. It installs Apache, PHP, the Apache PHP module, and MySQL Server. The -yq flags make the installation non-interactive, preventing prompts for user input.
+
+The next few lines set the MySQL root password to avoid interactive prompts during installation. This is done using the debconf-set-selections command.
+
+sudo apt-get -y install mysql-server: This line installs MySQL Server without further user interaction.
+
+sudo systemctl start apache2: This command starts the Apache web server.
+
+sudo systemctl enable apache2: This command configures Apache to start automatically at boot.
+
+echo "<?php phpinfo(); ?>" | sudo tee /var/www/html/info.php: This line creates an "info.php" file in the web server's document root directory. The file contains PHP code to display PHP configuration information when accessed through a web browser.
+
+The following commands create a user named "altschool" and set a password for the user. The user is given root privileges (sudo) using usermod.
+
+sudo -u altschool ssh-keygen -t rsa -N "" -f /home/altschool/.ssh/id_rsa: These commands generate an SSH key pair for the "altschool" user without a passphrase. The private key is saved as /home/altschool/.ssh/id_rsa.
+
+sudo mkdir -p /mnt/altschool: This line creates a directory at /mnt/altschool.
+
+sudo touch /mnt/altschool/sample_file.txt: This command creates an empty file named "sample_file.txt" inside the /mnt/altschool directory.
+
+sudo chown -R altschool:altschool /mnt/altschool: This command changes the ownership of the /mnt/altschool directory and its contents to the "altschool" user and group.
+
+ps aux: Finally, this command is used to display an overview of the currently running processes on the virtual machine.
+
+   FOR THE SLAVE NODE:
+   
+config.vm.define "Slave" do |slave_config|: This line defines a virtual machine with the name "Slave" and begins a block that configures this virtual machine. The name "Slave" is used to identify this machine within the Vagrant environment.
+
+slave_config.vm.box = "ubuntu/bionic64": This line sets the base box for the "Slave" virtual machine. It specifies that the virtual machine should be created using the "ubuntu/bionic64" base box, which is an Ubuntu Linux distribution with the Bionic Beaver (18.04) release.
+
+config.vm.network "private_network", ip: "192.168.33.11": This line configures the network settings for the "Slave" virtual machine. It sets up a private network and assigns an IP address of "192.168.33.11" to the virtual machine. This IP address will be used for communication within the private network, isolated from the host machine.
+
+slave_config.vm.provider "virtualbox" do |vb|: Here, it specifies the provider-specific settings for the "Slave" virtual machine, which is VirtualBox in this case.
+
+vb.memory = 1024: This line sets the amount of RAM (memory) allocated to the "Slave" virtual machine to 1024 MB (1 GB).
+
+vb.cpus = 1: This line configures the number of virtual CPUs allocated to the "Slave" virtual machine. It assigns 1 virtual CPU to the machine.
+
+slave_config.vm.provision "shell", inline: <<-SHELL: This line specifies that the provisioning method used for the "Slave" virtual machine is a shell script. The inline attribute indicates that the script will be defined within this block and executed directly.
+
+sudo apt-get update: This line updates the package repository on the virtual machine. It ensures that the system has the latest information about available packages and their versions.
+
+sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install apache2 php libapache2-mod-php mysql-server php-mysql: This command installs several software packages. Here's what each part does:
+
+sudo DEBIAN_FRONTEND=noninteractive: Sets the DEBIAN_FRONTEND environment variable to "noninteractive" to avoid any interactive prompts during package installation.
+apt-get -yq install apache2 php libapache2-mod-php mysql-server php-mysql: Installs the following packages:
+apache2: The Apache web server, used to serve web pages.
+php: The PHP programming language, which is often used for web development.
+libapache2-mod-php: A module that allows Apache to process PHP files.
+mysql-server: The MySQL database server, used for storing data.
+php-mysql: A PHP extension for connecting to MySQL databases.
+sudo debconf-set-selections <<< "mysql-server mysql-server/root_password password your_mysql_root_password_here": This command sets the MySQL root password without interactive prompts. You should replace "your_mysql_root_password_here" with the actual password you want to set.
+
+sudo debconf-set-selections <<< "mysql-server mysql-server/root_password_again password your_mysql_root_password_here": Similar to the previous command, this sets the MySQL root password confirmation.
+
+sudo apt-get -y install mysql-server: Installs the MySQL server. This line is similar to the earlier installation command but without interactive prompts, as the password is already set.
+
+sudo systemctl start apache2: Starts the Apache web server.
+
+sudo systemctl enable apache2: Enables Apache to start automatically when the virtual machine boots up.
+
+echo "<?php phpinfo(); ?>" | sudo tee /var/www/html/info.php: This line creates a simple PHP script named "info.php" in the /var/www/html/ directory. The script contains PHP code to display information about the PHP configuration and server environment when accessed through a web browser.
+
+FOR THE LOAD BALANCER NODE:
+
+config.vm.define "LoadBalancer" do |lb_config|: This line defines the "LoadBalancer" virtual machine configuration block. The name "LoadBalancer" is used as an identifier for this virtual machine.
+
+lb_config.vm.box = "ubuntu/bionic64": This line specifies the base box to be used for the "LoadBalancer" virtual machine. In this case, it's using the "ubuntu/bionic64" base box, which is based on Ubuntu 18.04 (Bionic Beaver).
+
+config.vm.network "private_network", ip: "192.168.33.12": This line configures a private network interface for the virtual machine. It assigns the IP address "192.168.33.12" to the virtual machine on this private network. Private networks are typically used for communication between virtual machines within the same Vagrant environment.
+
+lb_config.vm.provider "virtualbox" do |vb|: This section configures the virtualization provider for the virtual machine. In this case, it's using VirtualBox as the provider. The following settings are specified within this provider block:
+
+vb.memory = 512: It allocates 512 megabytes of RAM to the virtual machine.
+
+vb.cpus = 1: It assigns 1 virtual CPU to the virtual machine.
+
+lb_config.vm.provision "shell", inline: <<-SHELL: This line specifies that the provisioning method used for the "LoadBalancer" virtual machine is a shell script. The inline attribute indicates that the script will be defined within this block and executed directly.
+
+sudo apt-get update: This command updates the package repository on the virtual machine, ensuring that it has the latest information about available packages and their versions.
+
+sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install nginx: This command installs the Nginx web server on the virtual machine. Here's what each part does:
+
+sudo DEBIAN_FRONTEND=noninteractive: Sets the DEBIAN_FRONTEND environment variable to "noninteractive" to avoid any interactive prompts during package installation.
+
+apt-get -yq install nginx: Installs the Nginx web server. The -y flag automatically answers "yes" to any prompts, and the -q flag suppresses output, making the installation non-interactive and quiet.
+
+echo "upstream backend { ... }": This command uses the echo command to print a configuration block for Nginx into the standard output.
+
+The upstream block defines a group of backend servers (in this case, two servers) that will receive incoming requests.
+
+Each server directive lists the IP addresses of the backend servers. In this example, it lists the IP addresses of the "Master" and "Slave" nodes (192.168.33.10 and 192.168.33.11, respectively).
+
+| sudo tee /etc/nginx/sites-available/loadbalancer: The | symbol is used to pipe the output of the echo command to the tee command. tee is used to write the configuration to a file named "loadbalancer" in the /etc/nginx/sites-available/ directory. This file will store the Nginx configuration.
+
+sudo ln -s /etc/nginx/sites-available/loadbalancer /etc/nginx/sites-enabled/: This command creates a symbolic link from the configuration file in the "sites-available" directory to the "sites-enabled" directory. It enables the configuration, allowing Nginx to use it.
+
+sudo nginx -t: This command checks the syntax of the Nginx configuration without actually reloading Nginx. It helps identify any configuration errors.
+
+sudo systemctl restart nginx: This command restarts the Nginx service to apply the new configuration. After this step, Nginx will act as a simple load balancer, distributing incoming web requests to the backend servers specified in the "upstream" block.
+
+THE END OF FILE FOR THE CONFIGURATION AND PROVISIONING OF THE VAGRANTFILE
+
+
+- The `vagrant up` command is used to create and start the virtual machines defined in the Vagrantfile.
+
+- After the virtual machines have been deployed and started, a message is displayed: "viola, deployment completed," indicating the successful completion of the deployment process.
+
+- The script also provides URLs to access web server information pages on the virtual machines:
+  - "For the 'Master' node: http://192.168.33.10/info.php"
+  - "For the 'Slave' node: http://192.168.33.11/info.php"
+  
+  These URLs allow users to access PHP information pages hosted on the "Master" and "Slave" nodes, enabling them to verify that the web servers are running correctly and gather information about the PHP environment on each node.
+  
+ 
